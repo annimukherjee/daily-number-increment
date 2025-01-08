@@ -77,7 +77,7 @@ def main():
         git_commit()
         git_push()
 
-        update_cron_with_random_time()
+        # update_cron_with_random_time()
 
     except Exception as e:
         print(f"Error: {str(e)}")
