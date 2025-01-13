@@ -4,32 +4,33 @@ import random
 import subprocess
 from datetime import datetime
 
+# Ensure the script runs in its own directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(script_dir)
 
+def ensure_number_file_exists():
+    """Ensure the number.txt file exists and initialize it if missing."""
+    if not os.path.exists("number.txt"):
+        with open("number.txt", "w") as f:
+            f.write("")
 
-def read_number():
-    with open('number.txt', 'r') as f:
-        return int(f.read().strip())
-
-
-def write_number(num):
-    with open('number.txt', 'w') as f:
-        f.write(str(num))
-
+def write_new_number():
+    """Write a random number (1-10) to a new line in number.txt."""
+    random_number = random.randint(1, 10)
+    with open("number.txt", "a") as f:  # Append to the file
+        f.write(f"{random_number}\n")
+    return random_number
 
 def git_commit():
-    # Stage the changes
-    subprocess.run(['git', 'add', 'number.txt'])
+    """Stage changes, commit with a message, and push."""
+    subprocess.run(['git', 'add', 'number.txt'], check=True)
 
-    # Create commit with current date
-    date = datetime.now().strftime('%Y-%m-%d')
-    commit_message = f"Update number: {date}"
-    subprocess.run(['git', 'commit', '-m', commit_message])
-
+    # Commit message with a timestamp
+    commit_message = f"Add random number: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    subprocess.run(['git', 'commit', '-m', commit_message], check=True)
 
 def git_push():
-    # Push the committed changes to GitHub
+    """Push the committed changes to GitHub."""
     result = subprocess.run(['git', 'push'], capture_output=True, text=True)
     if result.returncode == 0:
         print("Changes pushed to GitHub successfully.")
@@ -37,52 +38,18 @@ def git_push():
         print("Error pushing to GitHub:")
         print(result.stderr)
 
-
-def update_cron_with_random_time():
-    # Generate random hour (0-23) and minute (0-59)
-    random_hour = random.randint(0, 23)
-    random_minute = random.randint(0, 59)
-
-    # Define the new cron job command
-    new_cron_command = f"{random_minute} {random_hour} * * * cd {script_dir} && python3 {os.path.join(script_dir, 'update_number.py')}\n"
-
-    # Get the current crontab
-    cron_file = "/tmp/current_cron"
-    os.system(f"crontab -l > {cron_file} 2>/dev/null || true")  # Save current crontab, or create a new one if empty
-
-    # Update the crontab file
-    with open(cron_file, "r") as file:
-        lines = file.readlines()
-
-    with open(cron_file, "w") as file:
-        for line in lines:
-            # Remove existing entry for `update_number.py` if it exists
-            if "update_number.py" not in line:
-                file.write(line)
-        # Add the new cron job at the random time
-        file.write(new_cron_command)
-
-    # Load the updated crontab
-    os.system(f"crontab {cron_file}")
-    os.remove(cron_file)
-
-    print(f"Cron job updated to run at {random_hour}:{random_minute} tomorrow.")
-
 def main():
+    """Main script logic."""
     try:
-        current_number = read_number()
-        new_number = current_number + 1
-        write_number(new_number)
+        ensure_number_file_exists()  # Ensure the file exists
+        new_number = write_new_number()  # Add a new random number
 
-        git_commit()
-        git_push()
-
-        # update_cron_with_random_time()
-
+        git_commit()  # Commit changes
+        git_push()  # Push changes
+        print(f"Added new number: {new_number} and changes pushed.")
     except Exception as e:
-        print(f"Error: {str(e)}")
+        print(f"Error: {e}")
         exit(1)
 
-
 if __name__ == "__main__":
-    main() 
+    main()
